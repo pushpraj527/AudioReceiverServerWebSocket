@@ -13,6 +13,7 @@ import (
 	"mime/multipart"
 	"io/ioutil"
 	"path/filepath"
+	//"strings"
 )
 
 const sampleRate = 88125
@@ -58,20 +59,16 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 
 		fmt.Printf("\n%T\n",filename)
 
-		audiofile, err := os.Create(filename + ".wav")
+		audiofile, err := os.Create("./getaudio/"+filename+".wav")
 		if err != nil {
 			panic(err)
 		}
 
 		binary.Write(audiofile, binary.LittleEndian, buffer)
 
-		fmt.Println("yha tak sb thik hai")
-
 		audiofile.Close()
 
 		sendAudioEngine(filename)
-
-		fmt.Println("yha tak sb thik hai 2")
 
 		defer audiofile.Close()
 	}
@@ -80,15 +77,22 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 
 func sendAudioEngine(filename string) {
 
+	fmt.Println("yha nhi aa rha hai")
 	url := "http://localhost:8080/detectSentiment"
 	method := "POST"
 
+	audioFile := fmt.Sprintf("./getaudio/"+filename+".wav")
+
+	fmt.Println(audioFile)
+
 	payload := &bytes.Buffer{}
 	writer := multipart.NewWriter(payload)
-	file, errFile1 := os.Open("./getaudio/"+filename+".wav")
+	file, errFile1 := os.Open(audioFile)
+
 	defer file.Close()
+
 	part1,
-	errFile1 := writer.CreateFormFile("audio_file",filepath.Base("./getaudio/"+filename+".wav"))
+	errFile1 := writer.CreateFormFile("audio_file",filepath.Base(audioFile))
 	_, errFile1 = io.Copy(part1, file)
 	if errFile1 != nil {
 		fmt.Println(errFile1)
@@ -122,6 +126,7 @@ func sendAudioEngine(filename string) {
 		fmt.Println(err)
 		return
 	}
+	fmt.Println("\nSentiment Result of ",audioFile)
 	fmt.Println(string(body))
 }
 
