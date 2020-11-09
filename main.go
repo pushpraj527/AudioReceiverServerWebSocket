@@ -77,7 +77,6 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 
 func sendAudioEngine(filename string) {
 
-	fmt.Println("yha nhi aa rha hai")
 	url := "http://localhost:8080/detectSentiment"
 	method := "POST"
 
