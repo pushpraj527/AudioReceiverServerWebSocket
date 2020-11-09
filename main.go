@@ -1,20 +1,18 @@
 package main
 
 import (
-
+	"bufio"
+	"encoding/binary"
 	"fmt"
-	"net/http"
-//	"flag"
+	"io"
 	"log"
-//	"github.com/gorilla/websocket"
-	"io/ioutil"
-
+	"net/http"
+	"os"
+	"time"
 )
 
-
-const sampleRate = 44100
-const seconds = 4
-
+const sampleRate = 90240000
+const seconds = 5
 
 func serveHome(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
@@ -37,23 +35,42 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer ws.Close()*/
-	//buffer := make([]float32, sampleRate * seconds)
-	bodyByte, err := ioutil.ReadAll(r.Body)
+	buffer := make([]byte, sampleRate*seconds)
 
-	if err != nil {
-		panic(err)
+	reader := bufio.NewReader(r.Body)
+
+	i := 0
+	for {
+
+		i += 1
+		_, err := reader.Read(buffer)
+		if err != nil {
+			if err != io.EOF {
+				fmt.Println(err)
+			}
+			break
+		}
+		filename := fmt.Sprintf("sample%d", i)
+
+		audiofile, err := os.Create("./getaudio/"+filename + ".wav")
+		if err != nil {
+			panic(err)
+		}
+
+		binary.Write(audiofile, binary.LittleEndian, buffer)
+
+		defer audiofile.Close()
 	}
 	defer r.Body.Close()
-
-	fmt.Printf(string(bodyByte)) //Only for test
-
 }
-
 
 func main() {
 	fmt.Println("Server is running....")
-
+	//fmt.Println(time.Now().Format(time.RFC3339))
+	filename := time.Now().Format(time.RFC3339)
+	fmt.Println(filename)
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/wsaudio", serveWs)
 	log.Fatal(http.ListenAndServe(":8082", nil))
 }
+
