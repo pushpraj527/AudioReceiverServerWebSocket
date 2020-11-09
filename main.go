@@ -9,9 +9,13 @@ import (
 	"net/http"
 	"os"
 	"time"
+	"bytes"
+	"mime/multipart"
+	"io/ioutil"
+	"path/filepath"
 )
 
-const sampleRate = 90240000
+const sampleRate = 88125
 const seconds = 5
 
 func serveHome(w http.ResponseWriter, r *http.Request) {
@@ -52,16 +56,73 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 		}
 		filename := fmt.Sprintf("sample%d", i)
 
-		audiofile, err := os.Create("./getaudio/"+filename + ".wav")
+		fmt.Printf("\n%T\n",filename)
+
+		audiofile, err := os.Create(filename + ".wav")
 		if err != nil {
 			panic(err)
 		}
 
 		binary.Write(audiofile, binary.LittleEndian, buffer)
 
+		fmt.Println("yha tak sb thik hai")
+
+		audiofile.Close()
+
+		sendAudioEngine(filename)
+
+		fmt.Println("yha tak sb thik hai 2")
+
 		defer audiofile.Close()
 	}
 	defer r.Body.Close()
+}
+
+func sendAudioEngine(filename string) {
+
+	url := "http://localhost:8080/detectSentiment"
+	method := "POST"
+
+	payload := &bytes.Buffer{}
+	writer := multipart.NewWriter(payload)
+	file, errFile1 := os.Open("./getaudio/"+filename+".wav")
+	defer file.Close()
+	part1,
+	errFile1 := writer.CreateFormFile("audio_file",filepath.Base("./getaudio/"+filename+".wav"))
+	_, errFile1 = io.Copy(part1, file)
+	if errFile1 != nil {
+		fmt.Println(errFile1)
+		return
+	}
+	err := writer.Close()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+
+	client := &http.Client {
+	}
+	req, err := http.NewRequest(method, url, payload)
+
+	if err != nil {
+		fmt.Println(err)
+	return
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(string(body))
 }
 
 func main() {
